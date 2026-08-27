@@ -98,3 +98,13 @@ class NameComClient:
 
         response.raise_for_status()
         return response.json()
+
+    def delete_dns_record(self, domain, record_id):
+        response = requests.delete(
+            f"{self.base_url}/core/v1/domains/{domain}/records/{record_id}",
+            auth=(self.username, self.token),
+            timeout=20,
+        )
+
+        response.raise_for_status()
+        return True
