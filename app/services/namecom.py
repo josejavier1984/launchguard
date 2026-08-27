@@ -30,3 +30,17 @@ class NameComClient:
 
         response.raise_for_status()
         return response.json()
+
+    def check_availability(self, domain):
+        response = requests.post(
+            f"{self.base_url}/core/v1/domains:checkAvailability",
+            auth=(self.username, self.token),
+            json={
+                "domainNames": [domain],
+                "purchaseType": "registration",
+            },
+            timeout=20,
+        )
+
+        response.raise_for_status()
+        return response.json()
