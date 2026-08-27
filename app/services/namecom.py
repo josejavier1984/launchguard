@@ -44,3 +44,26 @@ class NameComClient:
 
         response.raise_for_status()
         return response.json()
+
+    def register_domain(self, domain, years=1):
+        response = requests.post(
+            f"{self.base_url}/core/v1/domains",
+            auth=(self.username, self.token),
+            headers={
+                "X-Idempotency-Key": f"launchguard-{domain}-{years}",
+            },
+            json={
+                "domain": {
+                    "domainName": domain,
+                    "autorenewEnabled": True,
+                    "locked": True,
+                    "privacyEnabled": True,
+                },
+                "years": years,
+                "purchaseType": "registration",
+            },
+            timeout=30,
+        )
+
+        response.raise_for_status()
+        return response.json()
