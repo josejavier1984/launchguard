@@ -23,7 +23,36 @@ def safe_deploy(client, domain, changes):
 
         created.append(created_record)
 
+    resulting_records = client.list_dns_records(domain)["records"]
+
+    resulting_ids = {
+        record.get("id")
+        for record in resulting_records
+    }
+
+    verification = []
+
+    for record in created:
+        verified = record.get("id") in resulting_ids
+
+        verification.append(
+            {
+                "id": record.get("id"),
+                "type": record.get("type"),
+                "host": record.get("host", ""),
+                "answer": record.get("answer"),
+                "verified": verified,
+            }
+        )
+
+    all_verified = all(
+        item["verified"]
+        for item in verification
+    )
+
     return {
         "snapshot": snapshot,
         "created": created,
+        "verification": verification,
+        "verified": all_verified,
     }
