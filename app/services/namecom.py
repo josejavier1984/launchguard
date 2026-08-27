@@ -67,11 +67,32 @@ class NameComClient:
 
         response.raise_for_status()
         return response.json()
-        
+
     def list_dns_records(self, domain):
         response = requests.get(
             f"{self.base_url}/core/v1/domains/{domain}/records",
             auth=(self.username, self.token),
+            timeout=20,
+        )
+
+        response.raise_for_status()
+        return response.json()
+
+    def create_dns_record(self, domain, record_type, host, answer, ttl=300, priority=None):
+        payload = {
+            "type": record_type,
+            "host": host,
+            "answer": answer,
+            "ttl": ttl,
+        }
+
+        if priority is not None:
+            payload["priority"] = priority
+
+        response = requests.post(
+            f"{self.base_url}/core/v1/domains/{domain}/records",
+            auth=(self.username, self.token),
+            json=payload,
             timeout=20,
         )
 
