@@ -55,3 +55,24 @@ class SnapshotStore:
             "created_at": created_at,
             "records": records,
         }
+
+    def get_snapshot(self, snapshot_id):
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, domain, created_at, records_json
+                FROM dns_snapshots
+                WHERE id = ?
+                """,
+                (snapshot_id,),
+            ).fetchone()
+
+        if row is None:
+            return None
+
+        return {
+            "id": row[0],
+            "domain": row[1],
+            "created_at": row[2],
+            "records": json.loads(row[3]),
+        }
