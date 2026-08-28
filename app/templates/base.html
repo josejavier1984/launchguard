@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}LaunchGuard{% endblock %}
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+    <header class="topbar">
+        <div class="topbar-inner">
+
+            <a href="/" class="brand">
+                <div class="brand-mark">
+                    LG
+                </div>
+
+                <div class="brand-text">
+                    <span class="brand-name">LaunchGuard</span>
+                    <span class="brand-tagline">Safe DomainOps</span>
+                </div>
+            </a>
+
+            <div class="environment-badge">
+                <span class="status-dot"></span>
+                Name.com Sandbox
+            </div>
+
+        </div>
+    </header>
+
+    <main class="page-shell">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+</body>
+</html>
