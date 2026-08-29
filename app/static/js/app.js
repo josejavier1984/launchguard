@@ -24,7 +24,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             <div>
                 <strong>Generating AI plan...</strong>
-                <p>Gemini is analyzing the requested DNS configuration.</p>
+                <p>
+                    Gemini is analyzing the requested DNS configuration.
+                </p>
             </div>
         `;
 
@@ -50,9 +52,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
                     <div>
                         <strong>Unable to generate plan</strong>
-                        <p>${escapeHtml(data.error || "Unknown error.")}</p>
+                        <p>
+                            ${escapeHtml(
+                                data.error || "Unknown error."
+                            )}
+                        </p>
                     </div>
                 `;
+
                 return;
             }
 
@@ -85,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             </span>
 
                             <span class="record-ttl">
-                                TTL ${change.ttl}
+                                TTL ${escapeHtml(change.ttl)}
                             </span>
                         </div>
                     `;
@@ -108,7 +115,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 ? `
                     <div class="plan-approval">
                         <div>
-                            <strong>Human approval required</strong>
+                            <strong>
+                                Human approval required
+                            </strong>
+
                             <p>
                                 Review the DNS plan before allowing
                                 LaunchGuard to modify Name.com.
@@ -140,7 +150,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             </h3>
                         </div>
 
-                        <span class="risk-badge risk-${escapeHtml(plan.risk_level)}">
+                        <span
+                            class="risk-badge risk-${escapeHtml(
+                                plan.risk_level
+                            )}"
+                        >
                             ${escapeHtml(plan.risk_level)}
                         </span>
                     </div>
@@ -171,14 +185,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     "approve-deploy-button"
                 );
 
-                deployButton.addEventListener("click", async () => {
-                    await deployApprovedPlan(
-                        currentDomain,
-                        currentPlan,
-                        deployButton,
-                        deploymentResult
-                    );
-                });
+                deployButton.addEventListener(
+                    "click",
+                    async () => {
+                        await deployApprovedPlan(
+                            currentDomain,
+                            currentPlan,
+                            deployButton,
+                            deploymentResult
+                        );
+                    }
+                );
             }
         } catch (error) {
             console.error(error);
@@ -190,7 +207,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 <div>
                     <strong>Connection error</strong>
-                    <p>LaunchGuard could not reach the server.</p>
+
+                    <p>
+                        LaunchGuard could not reach the server.
+                    </p>
                 </div>
             `;
         } finally {
@@ -226,40 +246,57 @@ async function deployApprovedPlan(
 
         if (!response.ok) {
             deployButton.disabled = false;
-            deployButton.textContent = "Approve & deploy safely";
+            deployButton.textContent =
+                "Approve & deploy safely";
 
-            deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
-                "beforeend",
-                `
-                    <div class="deployment-message deployment-error">
-                        <strong>Deployment blocked</strong>
-                        <p>
-                            ${escapeHtml(
-                                data.error || "DNS deployment failed."
-                            )}
-                        </p>
-                    </div>
-                `
-            );
+            deploymentResult
+                .querySelector(".plan-result")
+                .insertAdjacentHTML(
+                    "beforeend",
+                    `
+                        <div
+                            class="deployment-message deployment-error"
+                        >
+                            <strong>
+                                Deployment blocked
+                            </strong>
+
+                            <p>
+                                ${escapeHtml(
+                                    data.error ||
+                                    "DNS deployment failed."
+                                )}
+                            </p>
+                        </div>
+                    `
+                );
 
             return;
         }
 
         if (!data.deployed) {
-            deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
-                "beforeend",
-                `
-                    <div class="deployment-message deployment-success">
-                        <strong>✓ No changes required</strong>
-                        <p>
-                            The current DNS configuration already matches
-                            the approved plan.
-                        </p>
-                    </div>
-                `
-            );
+            deploymentResult
+                .querySelector(".plan-result")
+                .insertAdjacentHTML(
+                    "beforeend",
+                    `
+                        <div
+                            class="deployment-message deployment-success"
+                        >
+                            <strong>
+                                ✓ No changes required
+                            </strong>
+
+                            <p>
+                                The current DNS configuration
+                                already matches the approved plan.
+                            </p>
+                        </div>
+                    `
+                );
 
             deployButton.textContent = "Already deployed";
+
             return;
         }
 
@@ -267,7 +304,7 @@ async function deployApprovedPlan(
             data.result &&
             data.result.snapshot
                 ? data.result.snapshot.id
-                : "—";
+                : null;
 
         const createdCount =
             data.result &&
@@ -279,52 +316,257 @@ async function deployApprovedPlan(
             data.result &&
             data.result.verified === true;
 
-        deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
-            "beforeend",
-            `
-                <div class="deployment-message deployment-success">
-                    <strong>✓ Safe deployment completed</strong>
+        const rollbackHtml =
+            snapshotId !== null
+                ? `
+                    <div class="rollback-action">
+                        <button
+                            id="rollback-button"
+                            class="rollback-button"
+                            type="button"
+                        >
+                            Rollback to Snapshot #${escapeHtml(
+                                snapshotId
+                            )}
+                        </button>
+                    </div>
+                `
+                : "";
 
-                    <p>
-                        Snapshot #${escapeHtml(snapshotId)}
-                        created before deployment.
-                    </p>
-
-                    <p>
-                        ${createdCount}
-                        DNS change${createdCount === 1 ? "" : "s"}
-                        applied.
-                    </p>
-
-                    <p>
-                        Verification:
+        deploymentResult
+            .querySelector(".plan-result")
+            .insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div
+                        class="deployment-message deployment-success"
+                    >
                         <strong>
-                            ${verified ? "Passed" : "Needs review"}
+                            ✓ Safe deployment completed
                         </strong>
-                    </p>
-                </div>
-            `
-        );
 
-        deployButton.textContent = "Deployment complete";
+                        <p>
+                            ${
+                                snapshotId !== null
+                                    ? `Snapshot #${escapeHtml(
+                                        snapshotId
+                                    )} created before deployment.`
+                                    : "Pre-deployment snapshot created."
+                            }
+                        </p>
+
+                        <p>
+                            ${createdCount}
+                            DNS change${
+                                createdCount === 1 ? "" : "s"
+                            }
+                            applied.
+                        </p>
+
+                        <p>
+                            Verification:
+                            <strong>
+                                ${
+                                    verified
+                                        ? "Passed"
+                                        : "Needs review"
+                                }
+                            </strong>
+                        </p>
+
+                        ${rollbackHtml}
+                    </div>
+                `
+            );
+
+        if (snapshotId !== null) {
+            const rollbackButton =
+                document.getElementById(
+                    "rollback-button"
+                );
+
+            rollbackButton.addEventListener(
+                "click",
+                async () => {
+                    await rollbackToSnapshot(
+                        domain,
+                        snapshotId,
+                        rollbackButton,
+                        deploymentResult
+                    );
+                }
+            );
+        }
+
+        deployButton.textContent =
+            "Deployment complete";
 
     } catch (error) {
         console.error(error);
 
         deployButton.disabled = false;
-        deployButton.textContent = "Approve & deploy safely";
+        deployButton.textContent =
+            "Approve & deploy safely";
 
-        deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
-            "beforeend",
-            `
-                <div class="deployment-message deployment-error">
-                    <strong>Connection error</strong>
-                    <p>
-                        LaunchGuard could not complete the deployment.
-                    </p>
-                </div>
-            `
+        deploymentResult
+            .querySelector(".plan-result")
+            .insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div
+                        class="deployment-message deployment-error"
+                    >
+                        <strong>
+                            Connection error
+                        </strong>
+
+                        <p>
+                            LaunchGuard could not complete
+                            the deployment.
+                        </p>
+                    </div>
+                `
+            );
+    }
+}
+
+
+async function rollbackToSnapshot(
+    domain,
+    snapshotId,
+    rollbackButton,
+    deploymentResult
+) {
+    rollbackButton.disabled = true;
+    rollbackButton.textContent =
+        "Rolling back...";
+
+    try {
+        const response = await fetch(
+            "/api/rollback",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    domain,
+                    snapshot_id: Number(snapshotId),
+                }),
+            }
         );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            rollbackButton.disabled = false;
+
+            rollbackButton.textContent =
+                `Rollback to Snapshot #${snapshotId}`;
+
+            deploymentResult
+                .querySelector(".plan-result")
+                .insertAdjacentHTML(
+                    "beforeend",
+                    `
+                        <div
+                            class="deployment-message deployment-error"
+                        >
+                            <strong>
+                                Rollback failed
+                            </strong>
+
+                            <p>
+                                ${escapeHtml(
+                                    data.error ||
+                                    "Unable to restore snapshot."
+                                )}
+                            </p>
+                        </div>
+                    `
+                );
+
+            return;
+        }
+
+        const deletedCount =
+            Array.isArray(data.deleted)
+                ? data.deleted.length
+                : 0;
+
+        const createdCount =
+            Array.isArray(data.created)
+                ? data.created.length
+                : 0;
+
+        deploymentResult
+            .querySelector(".plan-result")
+            .insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div
+                        class="deployment-message rollback-success"
+                    >
+                        <strong>
+                            ✓ Snapshot #${escapeHtml(
+                                snapshotId
+                            )} restored
+                        </strong>
+
+                        <p>
+                            ${deletedCount}
+                            DNS record${
+                                deletedCount === 1 ? "" : "s"
+                            }
+                            removed and
+                            ${createdCount}
+                            restored.
+                        </p>
+
+                        <p>
+                            Verification:
+                            <strong>
+                                ${
+                                    data.verified
+                                        ? "Passed"
+                                        : "Needs review"
+                                }
+                            </strong>
+                        </p>
+                    </div>
+                `
+            );
+
+        rollbackButton.textContent =
+            "Rollback complete";
+
+    } catch (error) {
+        console.error(error);
+
+        rollbackButton.disabled = false;
+
+        rollbackButton.textContent =
+            `Rollback to Snapshot #${snapshotId}`;
+
+        deploymentResult
+            .querySelector(".plan-result")
+            .insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div
+                        class="deployment-message deployment-error"
+                    >
+                        <strong>
+                            Connection error
+                        </strong>
+
+                        <p>
+                            LaunchGuard could not complete
+                            the rollback.
+                        </p>
+                    </div>
+                `
+            );
     }
 }
 
