@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, render_template, request
 
+from app.services.planner import generate_dns_plan
+from app.services.validator import validate_changes
+
 
 main = Blueprint("main", __name__)
 
@@ -32,11 +35,33 @@ def create_plan():
             }
         ), 400
 
-    return jsonify(
-        {
-            "ok": True,
-            "domain": domain,
-            "intent": intent,
-            "message": "LaunchGuard received the deployment request.",
-        }
-    )
+    try:
+        plan = generate_dns_plan(
+            domain=domain,
+            intent=intent,
+        )
+
+        plan_data = plan.to_dict()
+
+        validation = validate_changes(
+            plan_data["changes"]
+        )
+
+        return jsonify(
+            {
+                "ok": True,
+                "domain": domain,
+                "intent": intent,
+                "plan": plan_data,
+                "validation": validation,
+            }
+        )
+
+    except Exception as exc:
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Unable to generate DNS plan.",
+                "details": str(exc),
+            }
+        ), 500
