@@ -4,9 +4,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const planButton = document.querySelector(".primary-button");
     const deploymentResult = document.getElementById("deployment-result");
 
+    let currentPlan = null;
+    let currentDomain = null;
+
     planButton.addEventListener("click", async () => {
         const domain = domainInput.value.trim();
         const intent = intentInput.value.trim();
+
+        currentPlan = null;
+        currentDomain = null;
 
         planButton.disabled = true;
         planButton.textContent = "Generating...";
@@ -53,6 +59,9 @@ document.addEventListener("DOMContentLoaded", () => {
             const plan = data.plan;
             const validation = data.validation;
 
+            currentPlan = plan;
+            currentDomain = domain;
+
             const recordsHtml = plan.changes
                 .map((change) => {
                     const host = change.host || "@";
@@ -95,6 +104,28 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
                 `;
 
+            const approvalHtml = validation.valid
+                ? `
+                    <div class="plan-approval">
+                        <div>
+                            <strong>Human approval required</strong>
+                            <p>
+                                Review the DNS plan before allowing
+                                LaunchGuard to modify Name.com.
+                            </p>
+                        </div>
+
+                        <button
+                            id="approve-deploy-button"
+                            class="deploy-button"
+                            type="button"
+                        >
+                            Approve & deploy safely
+                        </button>
+                    </div>
+                `
+                : "";
+
             deploymentResult.innerHTML = `
                 <div class="plan-result">
 
@@ -130,8 +161,25 @@ document.addEventListener("DOMContentLoaded", () => {
                         </div>
                     </div>
 
+                    ${approvalHtml}
+
                 </div>
             `;
+
+            if (validation.valid) {
+                const deployButton = document.getElementById(
+                    "approve-deploy-button"
+                );
+
+                deployButton.addEventListener("click", async () => {
+                    await deployApprovedPlan(
+                        currentDomain,
+                        currentPlan,
+                        deployButton,
+                        deploymentResult
+                    );
+                });
+            }
         } catch (error) {
             console.error(error);
 
@@ -151,6 +199,134 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 });
+
+
+async function deployApprovedPlan(
+    domain,
+    plan,
+    deployButton,
+    deploymentResult
+) {
+    deployButton.disabled = true;
+    deployButton.textContent = "Deploying safely...";
+
+    try {
+        const response = await fetch("/api/deploy", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                domain,
+                changes: plan.changes,
+            }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            deployButton.disabled = false;
+            deployButton.textContent = "Approve & deploy safely";
+
+            deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div class="deployment-message deployment-error">
+                        <strong>Deployment blocked</strong>
+                        <p>
+                            ${escapeHtml(
+                                data.error || "DNS deployment failed."
+                            )}
+                        </p>
+                    </div>
+                `
+            );
+
+            return;
+        }
+
+        if (!data.deployed) {
+            deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
+                "beforeend",
+                `
+                    <div class="deployment-message deployment-success">
+                        <strong>✓ No changes required</strong>
+                        <p>
+                            The current DNS configuration already matches
+                            the approved plan.
+                        </p>
+                    </div>
+                `
+            );
+
+            deployButton.textContent = "Already deployed";
+            return;
+        }
+
+        const snapshotId =
+            data.result &&
+            data.result.snapshot
+                ? data.result.snapshot.id
+                : "—";
+
+        const createdCount =
+            data.result &&
+            Array.isArray(data.result.created)
+                ? data.result.created.length
+                : 0;
+
+        const verified =
+            data.result &&
+            data.result.verified === true;
+
+        deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
+            "beforeend",
+            `
+                <div class="deployment-message deployment-success">
+                    <strong>✓ Safe deployment completed</strong>
+
+                    <p>
+                        Snapshot #${escapeHtml(snapshotId)}
+                        created before deployment.
+                    </p>
+
+                    <p>
+                        ${createdCount}
+                        DNS change${createdCount === 1 ? "" : "s"}
+                        applied.
+                    </p>
+
+                    <p>
+                        Verification:
+                        <strong>
+                            ${verified ? "Passed" : "Needs review"}
+                        </strong>
+                    </p>
+                </div>
+            `
+        );
+
+        deployButton.textContent = "Deployment complete";
+
+    } catch (error) {
+        console.error(error);
+
+        deployButton.disabled = false;
+        deployButton.textContent = "Approve & deploy safely";
+
+        deploymentResult.querySelector(".plan-result").insertAdjacentHTML(
+            "beforeend",
+            `
+                <div class="deployment-message deployment-error">
+                    <strong>Connection error</strong>
+                    <p>
+                        LaunchGuard could not complete the deployment.
+                    </p>
+                </div>
+            `
+        );
+    }
+}
 
 
 function escapeHtml(value) {
