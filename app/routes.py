@@ -4,7 +4,8 @@ from app.services.deploy import safe_deploy
 from app.services.namecom import NameComClient
 from app.services.planner import generate_dns_plan
 from app.services.validator import validate_changes
-
+from app.services.rollback import compare_dns_states, execute_rollback
+from app.services.snapshots import SnapshotStore
 
 main = Blueprint("main", __name__)
 
@@ -179,6 +180,95 @@ def deploy_plan():
             {
                 "ok": False,
                 "error": "DNS deployment failed.",
+                "details": str(exc),
+            }
+        ), 500
+
+@main.route("/api/rollback", methods=["POST"])
+def rollback_snapshot():
+    data = request.get_json(silent=True) or {}
+
+    snapshot_id = data.get("snapshot_id")
+    requested_domain = str(
+        data.get("domain", "")
+    ).strip()
+
+    if not isinstance(snapshot_id, int):
+        return jsonify(
+            {
+                "ok": False,
+                "error": "A valid snapshot ID is required.",
+            }
+        ), 400
+
+    try:
+        store = SnapshotStore()
+
+        snapshot = store.get_snapshot(
+            snapshot_id
+        )
+
+        if snapshot is None:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": "Snapshot not found.",
+                }
+            ), 404
+
+        if (
+            requested_domain
+            and requested_domain != snapshot["domain"]
+        ):
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "Snapshot does not belong "
+                        "to the requested domain."
+                    ),
+                }
+            ), 400
+
+        client = NameComClient()
+
+        result = execute_rollback(
+            client=client,
+            domain=snapshot["domain"],
+            snapshot_records=snapshot["records"],
+        )
+
+        current_records = client.list_dns_records(
+            snapshot["domain"]
+        )["records"]
+
+        verification = compare_dns_states(
+            current_records=current_records,
+            snapshot_records=snapshot["records"],
+        )
+
+        verified = (
+            not verification["to_delete"]
+            and not verification["to_create"]
+        )
+
+        return jsonify(
+            {
+                "ok": True,
+                "message": "Snapshot restored.",
+                "snapshot_id": snapshot["id"],
+                "domain": snapshot["domain"],
+                "deleted": result["deleted"],
+                "created": result["created"],
+                "verified": verified,
+            }
+        )
+
+    except Exception as exc:
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Rollback failed.",
                 "details": str(exc),
             }
         ), 500
