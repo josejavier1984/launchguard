@@ -8,7 +8,9 @@ LaunchGuard — Safe DomainOps
 
 <section class="hero">
     <div class="hero-copy">
-        <span class="eyebrow">AI-assisted DomainOps</span>
+        <span class="eyebrow">
+            AI-assisted DomainOps
+        </span>
 
         <h1>
             Deploy DNS changes
@@ -22,13 +24,80 @@ LaunchGuard — Safe DomainOps
     </div>
 </section>
 
+
+<section class="panel domain-search-panel">
+
+    <div class="panel-heading">
+        <div>
+            <span class="panel-label">
+                Domain Discovery
+            </span>
+
+            <h2>
+                Find your launch domain
+            </h2>
+        </div>
+
+        <span class="namecom-badge">
+            Name.com API
+        </span>
+    </div>
+
+    <div class="domain-search-content">
+
+        <div class="domain-search-copy">
+            <p>
+                Search Name.com for a domain before building
+                and deploying its DNS configuration.
+            </p>
+        </div>
+
+        <div class="domain-search-form">
+
+            <input
+                id="domain-search-input"
+                type="text"
+                placeholder="Example: launchguard-demo.com"
+                autocomplete="off"
+            >
+
+            <button
+                id="domain-search-button"
+                class="domain-search-button"
+                type="button"
+            >
+                Check availability
+            </button>
+
+        </div>
+
+        <div
+            id="domain-search-result"
+            class="domain-search-result"
+        >
+            <span>
+                Enter a domain to check Name.com availability.
+            </span>
+        </div>
+
+    </div>
+
+</section>
+
+
 <section class="dashboard-grid">
 
     <article class="panel deploy-panel">
+
         <div class="panel-heading">
             <div>
-                <span class="panel-label">Deployment</span>
-                <h2>Safe DNS change</h2>
+                <span class="panel-label">
+                    Deployment
+                </span>
+
+                <h2>
+                    Safe DNS change
+                </h2>
             </div>
 
             <span class="ready-badge">
@@ -61,84 +130,138 @@ LaunchGuard — Safe DomainOps
             ></textarea>
         </div>
 
-        <button class="primary-button" type="button">
+        <button
+            class="primary-button"
+            type="button"
+        >
             Generate safe plan
         </button>
+
     </article>
 
+
     <article class="panel status-panel">
+
         <div class="panel-heading">
             <div>
-                <span class="panel-label">System</span>
-                <h2>LaunchGuard status</h2>
+                <span class="panel-label">
+                    System
+                </span>
+
+                <h2>
+                    LaunchGuard status
+                </h2>
             </div>
         </div>
 
         <div class="status-list">
 
             <div class="status-item">
-                <span class="status-icon success">✓</span>
+                <span class="status-icon success">
+                    ✓
+                </span>
 
                 <div>
-                    <strong>Name.com Sandbox</strong>
-                    <span>API connection ready</span>
+                    <strong>
+                        Name.com Sandbox
+                    </strong>
+
+                    <span>
+                        API connection ready
+                    </span>
                 </div>
             </div>
 
+
             <div class="status-item">
-                <span class="status-icon success">✓</span>
+                <span class="status-icon success">
+                    ✓
+                </span>
 
                 <div>
-                    <strong>DNS snapshots</strong>
-                    <span>SQLite storage ready</span>
+                    <strong>
+                        DNS snapshots
+                    </strong>
+
+                    <span>
+                        SQLite storage ready
+                    </span>
                 </div>
             </div>
 
+
             <div class="status-item">
-                <span class="status-icon success">✓</span>
+                <span class="status-icon success">
+                    ✓
+                </span>
 
                 <div>
-                    <strong>Safe deployment</strong>
-                    <span>Snapshot before changes</span>
+                    <strong>
+                        Safe deployment
+                    </strong>
+
+                    <span>
+                        Snapshot before changes
+                    </span>
                 </div>
             </div>
 
+
             <div class="status-item">
-                <span class="status-icon success">✓</span>
+                <span class="status-icon success">
+                    ✓
+                </span>
 
                 <div>
-                    <strong>Rollback engine</strong>
-                    <span>State restoration ready</span>
+                    <strong>
+                        Rollback engine
+                    </strong>
+
+                    <span>
+                        State restoration ready
+                    </span>
                 </div>
             </div>
 
         </div>
+
     </article>
 
 </section>
+
 
 <section class="panel activity-panel">
 
     <div class="panel-heading">
         <div>
-            <span class="panel-label">Activity</span>
-            <h2>Deployment timeline</h2>
+            <span class="panel-label">
+                Activity
+            </span>
+
+            <h2>
+                Deployment timeline
+            </h2>
         </div>
     </div>
 
-    <div id="deployment-result" class="empty-state">
-    <div class="empty-icon">
-        LG
-    </div>
+    <div
+        id="deployment-result"
+        class="empty-state"
+    >
+        <div class="empty-icon">
+            LG
+        </div>
 
-    <div>
-        <strong>No deployment yet</strong>
+        <div>
+            <strong>
+                No deployment yet
+            </strong>
 
-        <p>
-            Generate a safe DNS plan to begin.
-        </p>
+            <p>
+                Generate a safe DNS plan to begin.
+            </p>
+        </div>
     </div>
-</div>
 
 </section>
 

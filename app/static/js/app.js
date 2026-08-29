@@ -1,11 +1,68 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const domainSearchInput = document.getElementById(
+        "domain-search-input"
+    );
+
+    const domainSearchButton = document.getElementById(
+        "domain-search-button"
+    );
+
+    const domainSearchResult = document.getElementById(
+        "domain-search-result"
+    );
+
     const domainInput = document.getElementById("domain");
     const intentInput = document.getElementById("intent");
-    const planButton = document.querySelector(".primary-button");
-    const deploymentResult = document.getElementById("deployment-result");
+
+    const planButton = document.querySelector(
+        ".primary-button"
+    );
+
+    const deploymentResult = document.getElementById(
+        "deployment-result"
+    );
 
     let currentPlan = null;
     let currentDomain = null;
+
+
+    /*
+     * Domain Discovery
+     */
+
+    domainSearchButton.addEventListener(
+        "click",
+        async () => {
+            await checkDomainAvailability(
+                domainSearchInput,
+                domainSearchButton,
+                domainSearchResult
+            );
+        }
+    );
+
+
+    domainSearchInput.addEventListener(
+        "keydown",
+        async (event) => {
+            if (event.key !== "Enter") {
+                return;
+            }
+
+            event.preventDefault();
+
+            await checkDomainAvailability(
+                domainSearchInput,
+                domainSearchButton,
+                domainSearchResult
+            );
+        }
+    );
+
+
+    /*
+     * AI DNS Planning
+     */
 
     planButton.addEventListener("click", async () => {
         const domain = domainInput.value.trim();
@@ -23,9 +80,13 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
 
             <div>
-                <strong>Generating AI plan...</strong>
+                <strong>
+                    Generating AI plan...
+                </strong>
+
                 <p>
-                    Gemini is analyzing the requested DNS configuration.
+                    Gemini is analyzing the requested
+                    DNS configuration.
                 </p>
             </div>
         `;
@@ -51,10 +112,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
 
                     <div>
-                        <strong>Unable to generate plan</strong>
+                        <strong>
+                            Unable to generate plan
+                        </strong>
+
                         <p>
                             ${escapeHtml(
-                                data.error || "Unknown error."
+                                data.error ||
+                                "Unknown error."
                             )}
                         </p>
                     </div>
@@ -71,16 +136,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const recordsHtml = plan.changes
                 .map((change) => {
-                    const host = change.host || "@";
+                    const host =
+                        change.host || "@";
 
                     return `
                         <div class="plan-record">
                             <span class="record-type">
-                                ${escapeHtml(change.type)}
+                                ${escapeHtml(
+                                    change.type
+                                )}
                             </span>
 
                             <span class="record-host">
-                                ${escapeHtml(host)}
+                                ${escapeHtml(
+                                    host
+                                )}
                             </span>
 
                             <span class="record-arrow">
@@ -88,53 +158,64 @@ document.addEventListener("DOMContentLoaded", () => {
                             </span>
 
                             <span class="record-answer">
-                                ${escapeHtml(change.answer)}
+                                ${escapeHtml(
+                                    change.answer
+                                )}
                             </span>
 
                             <span class="record-ttl">
-                                TTL ${escapeHtml(change.ttl)}
+                                TTL ${escapeHtml(
+                                    change.ttl
+                                )}
                             </span>
                         </div>
                     `;
                 })
                 .join("");
 
-            const validationHtml = validation.valid
-                ? `
-                    <div class="timeline-status success-text">
-                        ✓ Validation passed
-                    </div>
-                `
-                : `
-                    <div class="timeline-status danger-text">
-                        ✕ Validation failed
-                    </div>
-                `;
-
-            const approvalHtml = validation.valid
-                ? `
-                    <div class="plan-approval">
-                        <div>
-                            <strong>
-                                Human approval required
-                            </strong>
-
-                            <p>
-                                Review the DNS plan before allowing
-                                LaunchGuard to modify Name.com.
-                            </p>
-                        </div>
-
-                        <button
-                            id="approve-deploy-button"
-                            class="deploy-button"
-                            type="button"
+            const validationHtml =
+                validation.valid
+                    ? `
+                        <div
+                            class="timeline-status success-text"
                         >
-                            Approve & deploy safely
-                        </button>
-                    </div>
-                `
-                : "";
+                            ✓ Validation passed
+                        </div>
+                    `
+                    : `
+                        <div
+                            class="timeline-status danger-text"
+                        >
+                            ✕ Validation failed
+                        </div>
+                    `;
+
+            const approvalHtml =
+                validation.valid
+                    ? `
+                        <div class="plan-approval">
+                            <div>
+                                <strong>
+                                    Human approval required
+                                </strong>
+
+                                <p>
+                                    Review the DNS plan before
+                                    allowing LaunchGuard to
+                                    modify Name.com.
+                                </p>
+                            </div>
+
+                            <button
+                                id="approve-deploy-button"
+                                class="deploy-button"
+                                type="button"
+                            >
+                                Approve & deploy safely
+                            </button>
+                        </div>
+                    `
+                    : "";
 
             deploymentResult.innerHTML = `
                 <div class="plan-result">
@@ -146,7 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
                             </span>
 
                             <h3>
-                                ${escapeHtml(plan.summary)}
+                                ${escapeHtml(
+                                    plan.summary
+                                )}
                             </h3>
                         </div>
 
@@ -155,7 +238,9 @@ document.addEventListener("DOMContentLoaded", () => {
                                 plan.risk_level
                             )}"
                         >
-                            ${escapeHtml(plan.risk_level)}
+                            ${escapeHtml(
+                                plan.risk_level
+                            )}
                         </span>
                     </div>
 
@@ -164,13 +249,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     </div>
 
                     <div class="plan-footer">
-                        <div class="timeline-status success-text">
+                        <div
+                            class="timeline-status success-text"
+                        >
                             ✓ Gemini plan generated
                         </div>
 
                         ${validationHtml}
 
-                        <div class="timeline-status muted-text">
+                        <div
+                            class="timeline-status muted-text"
+                        >
                             No DNS changes have been applied.
                         </div>
                     </div>
@@ -181,9 +270,10 @@ document.addEventListener("DOMContentLoaded", () => {
             `;
 
             if (validation.valid) {
-                const deployButton = document.getElementById(
-                    "approve-deploy-button"
-                );
+                const deployButton =
+                    document.getElementById(
+                        "approve-deploy-button"
+                    );
 
                 deployButton.addEventListener(
                     "click",
@@ -197,6 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 );
             }
+
         } catch (error) {
             console.error(error);
 
@@ -206,19 +297,219 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
 
                 <div>
-                    <strong>Connection error</strong>
+                    <strong>
+                        Connection error
+                    </strong>
 
                     <p>
-                        LaunchGuard could not reach the server.
+                        LaunchGuard could not
+                        reach the server.
                     </p>
                 </div>
             `;
+
         } finally {
             planButton.disabled = false;
-            planButton.textContent = "Generate safe plan";
+
+            planButton.textContent =
+                "Generate safe plan";
         }
     });
 });
+
+
+async function checkDomainAvailability(
+    domainSearchInput,
+    domainSearchButton,
+    domainSearchResult
+) {
+    const domain =
+        domainSearchInput.value
+            .trim()
+            .toLowerCase();
+
+    if (!domain) {
+        domainSearchResult.innerHTML = `
+            <span class="domain-result-error">
+                Enter a domain name first.
+            </span>
+        `;
+
+        return;
+    }
+
+    domainSearchButton.disabled = true;
+
+    domainSearchButton.textContent =
+        "Checking...";
+
+    domainSearchResult.innerHTML = `
+        <span>
+            Checking
+            <strong>
+                ${escapeHtml(domain)}
+            </strong>
+            with Name.com...
+        </span>
+    `;
+
+    try {
+        const response = await fetch(
+            "/api/domain-availability",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+                body: JSON.stringify({
+                    domain,
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            domainSearchResult.innerHTML = `
+                <div class="domain-result-error">
+                    <strong>
+                        Unable to check domain
+                    </strong>
+
+                    <span>
+                        ${escapeHtml(
+                            data.error ||
+                            "Name.com availability check failed."
+                        )}
+                    </span>
+                </div>
+            `;
+
+            return;
+        }
+
+        if (data.purchasable) {
+            const purchasePrice =
+                formatPrice(
+                    data.purchase_price
+                );
+
+            const renewalPrice =
+                formatPrice(
+                    data.renewal_price
+                );
+
+            const premiumLabel =
+                data.premium
+                    ? `
+                        <span class="domain-premium-badge">
+                            Premium
+                        </span>
+                    `
+                    : "";
+
+            domainSearchResult.innerHTML = `
+                <div class="domain-result-available">
+
+                    <div class="domain-result-main">
+                        <span
+                            class="domain-availability-icon"
+                        >
+                            ✓
+                        </span>
+
+                        <div>
+                            <strong>
+                                ${escapeHtml(
+                                    data.domain
+                                )}
+                                is available
+                            </strong>
+
+                            <span>
+                                Available for registration
+                                through Name.com.
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="domain-result-pricing">
+
+                        ${premiumLabel}
+
+                        <span>
+                            Registration
+                            <strong>
+                                ${escapeHtml(
+                                    purchasePrice
+                                )}
+                            </strong>
+                        </span>
+
+                        <span>
+                            Renewal
+                            <strong>
+                                ${escapeHtml(
+                                    renewalPrice
+                                )}
+                            </strong>
+                        </span>
+
+                    </div>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        domainSearchResult.innerHTML = `
+            <div class="domain-result-unavailable">
+
+                <span class="domain-availability-icon">
+                    ×
+                </span>
+
+                <div>
+                    <strong>
+                        ${escapeHtml(
+                            data.domain
+                        )}
+                        is not available
+                    </strong>
+
+                    <span>
+                        Try another domain name.
+                    </span>
+                </div>
+
+            </div>
+        `;
+
+    } catch (error) {
+        console.error(error);
+
+        domainSearchResult.innerHTML = `
+            <div class="domain-result-error">
+                <strong>
+                    Connection error
+                </strong>
+
+                <span>
+                    LaunchGuard could not reach
+                    the availability service.
+                </span>
+            </div>
+        `;
+
+    } finally {
+        domainSearchButton.disabled = false;
+
+        domainSearchButton.textContent =
+            "Check availability";
+    }
+}
 
 
 async function deployApprovedPlan(
@@ -228,24 +519,31 @@ async function deployApprovedPlan(
     deploymentResult
 ) {
     deployButton.disabled = true;
-    deployButton.textContent = "Deploying safely...";
+
+    deployButton.textContent =
+        "Deploying safely...";
 
     try {
-        const response = await fetch("/api/deploy", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                domain,
-                changes: plan.changes,
-            }),
-        });
+        const response = await fetch(
+            "/api/deploy",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json",
+                },
+                body: JSON.stringify({
+                    domain,
+                    changes: plan.changes,
+                }),
+            }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
             deployButton.disabled = false;
+
             deployButton.textContent =
                 "Approve & deploy safely";
 
@@ -255,7 +553,10 @@ async function deployApprovedPlan(
                     "beforeend",
                     `
                         <div
-                            class="deployment-message deployment-error"
+                            class="
+                                deployment-message
+                                deployment-error
+                            "
                         >
                             <strong>
                                 Deployment blocked
@@ -281,21 +582,26 @@ async function deployApprovedPlan(
                     "beforeend",
                     `
                         <div
-                            class="deployment-message deployment-success"
+                            class="
+                                deployment-message
+                                deployment-success
+                            "
                         >
                             <strong>
                                 ✓ No changes required
                             </strong>
 
                             <p>
-                                The current DNS configuration
-                                already matches the approved plan.
+                                The current DNS
+                                configuration already
+                                matches the approved plan.
                             </p>
                         </div>
                     `
                 );
 
-            deployButton.textContent = "Already deployed";
+            deployButton.textContent =
+                "Already deployed";
 
             return;
         }
@@ -308,7 +614,9 @@ async function deployApprovedPlan(
 
         const createdCount =
             data.result &&
-            Array.isArray(data.result.created)
+            Array.isArray(
+                data.result.created
+            )
                 ? data.result.created.length
                 : 0;
 
@@ -325,7 +633,8 @@ async function deployApprovedPlan(
                             class="rollback-button"
                             type="button"
                         >
-                            Rollback to Snapshot #${escapeHtml(
+                            Rollback to Snapshot
+                            #${escapeHtml(
                                 snapshotId
                             )}
                         </button>
@@ -339,7 +648,10 @@ async function deployApprovedPlan(
                 "beforeend",
                 `
                     <div
-                        class="deployment-message deployment-success"
+                        class="
+                            deployment-message
+                            deployment-success
+                        "
                     >
                         <strong>
                             ✓ Safe deployment completed
@@ -358,7 +670,9 @@ async function deployApprovedPlan(
                         <p>
                             ${createdCount}
                             DNS change${
-                                createdCount === 1 ? "" : "s"
+                                createdCount === 1
+                                    ? ""
+                                    : "s"
                             }
                             applied.
                         </p>
@@ -405,6 +719,7 @@ async function deployApprovedPlan(
         console.error(error);
 
         deployButton.disabled = false;
+
         deployButton.textContent =
             "Approve & deploy safely";
 
@@ -414,15 +729,18 @@ async function deployApprovedPlan(
                 "beforeend",
                 `
                     <div
-                        class="deployment-message deployment-error"
+                        class="
+                            deployment-message
+                            deployment-error
+                        "
                     >
                         <strong>
                             Connection error
                         </strong>
 
                         <p>
-                            LaunchGuard could not complete
-                            the deployment.
+                            LaunchGuard could not
+                            complete the deployment.
                         </p>
                     </div>
                 `
@@ -438,6 +756,7 @@ async function rollbackToSnapshot(
     deploymentResult
 ) {
     rollbackButton.disabled = true;
+
     rollbackButton.textContent =
         "Rolling back...";
 
@@ -447,11 +766,13 @@ async function rollbackToSnapshot(
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
+                    "Content-Type":
+                        "application/json",
                 },
                 body: JSON.stringify({
                     domain,
-                    snapshot_id: Number(snapshotId),
+                    snapshot_id:
+                        Number(snapshotId),
                 }),
             }
         );
@@ -470,7 +791,10 @@ async function rollbackToSnapshot(
                     "beforeend",
                     `
                         <div
-                            class="deployment-message deployment-error"
+                            class="
+                                deployment-message
+                                deployment-error
+                            "
                         >
                             <strong>
                                 Rollback failed
@@ -505,18 +829,25 @@ async function rollbackToSnapshot(
                 "beforeend",
                 `
                     <div
-                        class="deployment-message rollback-success"
+                        class="
+                            deployment-message
+                            rollback-success
+                        "
                     >
                         <strong>
-                            ✓ Snapshot #${escapeHtml(
+                            ✓ Snapshot
+                            #${escapeHtml(
                                 snapshotId
-                            )} restored
+                            )}
+                            restored
                         </strong>
 
                         <p>
                             ${deletedCount}
                             DNS record${
-                                deletedCount === 1 ? "" : "s"
+                                deletedCount === 1
+                                    ? ""
+                                    : "s"
                             }
                             removed and
                             ${createdCount}
@@ -554,20 +885,43 @@ async function rollbackToSnapshot(
                 "beforeend",
                 `
                     <div
-                        class="deployment-message deployment-error"
+                        class="
+                            deployment-message
+                            deployment-error
+                        "
                     >
                         <strong>
                             Connection error
                         </strong>
 
                         <p>
-                            LaunchGuard could not complete
-                            the rollback.
+                            LaunchGuard could not
+                            complete the rollback.
                         </p>
                     </div>
                 `
             );
     }
+}
+
+
+function formatPrice(value) {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "—";
+    }
+
+    const numericValue =
+        Number(value);
+
+    if (Number.isNaN(numericValue)) {
+        return String(value);
+    }
+
+    return `$${numericValue.toFixed(2)}`;
 }
 
 

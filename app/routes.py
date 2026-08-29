@@ -3,9 +3,10 @@ from flask import Blueprint, jsonify, render_template, request
 from app.services.deploy import safe_deploy
 from app.services.namecom import NameComClient
 from app.services.planner import generate_dns_plan
-from app.services.validator import validate_changes
 from app.services.rollback import compare_dns_states, execute_rollback
 from app.services.snapshots import SnapshotStore
+from app.services.validator import validate_changes
+
 
 main = Blueprint("main", __name__)
 
@@ -15,12 +16,95 @@ def index():
     return render_template("index.html")
 
 
+@main.route("/api/domain-availability", methods=["POST"])
+def domain_availability():
+    data = request.get_json(silent=True) or {}
+
+    domain = str(
+        data.get("domain", "")
+    ).strip().lower()
+
+    if not domain:
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Domain is required.",
+            }
+        ), 400
+
+    try:
+        client = NameComClient()
+
+        availability = client.check_availability(
+            domain
+        )
+
+        results = availability.get(
+            "results",
+            []
+        )
+
+        if not results:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "Name.com did not return "
+                        "availability information."
+                    ),
+                }
+            ), 502
+
+        result = results[0]
+
+        return jsonify(
+            {
+                "ok": True,
+                "domain": result.get(
+                    "domainName",
+                    domain,
+                ),
+                "purchasable": result.get(
+                    "purchasable",
+                    False,
+                ),
+                "purchase_price": result.get(
+                    "purchasePrice"
+                ),
+                "renewal_price": result.get(
+                    "renewalPrice"
+                ),
+                "premium": result.get(
+                    "premium",
+                    False,
+                ),
+            }
+        )
+
+    except Exception as exc:
+        return jsonify(
+            {
+                "ok": False,
+                "error": (
+                    "Unable to check "
+                    "domain availability."
+                ),
+                "details": str(exc),
+            }
+        ), 500
+
+
 @main.route("/api/plan", methods=["POST"])
 def create_plan():
     data = request.get_json(silent=True) or {}
 
-    domain = str(data.get("domain", "")).strip()
-    intent = str(data.get("intent", "")).strip()
+    domain = str(
+        data.get("domain", "")
+    ).strip()
+
+    intent = str(
+        data.get("intent", "")
+    ).strip()
 
     if not domain:
         return jsonify(
@@ -34,7 +118,9 @@ def create_plan():
         return jsonify(
             {
                 "ok": False,
-                "error": "Deployment intent is required.",
+                "error": (
+                    "Deployment intent is required."
+                ),
             }
         ), 400
 
@@ -64,7 +150,9 @@ def create_plan():
         return jsonify(
             {
                 "ok": False,
-                "error": "Unable to generate DNS plan.",
+                "error": (
+                    "Unable to generate DNS plan."
+                ),
                 "details": str(exc),
             }
         ), 500
@@ -74,7 +162,10 @@ def create_plan():
 def deploy_plan():
     data = request.get_json(silent=True) or {}
 
-    domain = str(data.get("domain", "")).strip()
+    domain = str(
+        data.get("domain", "")
+    ).strip()
+
     changes = data.get("changes")
 
     if not domain:
@@ -85,21 +176,31 @@ def deploy_plan():
             }
         ), 400
 
-    if not isinstance(changes, list) or not changes:
+    if (
+        not isinstance(changes, list)
+        or not changes
+    ):
         return jsonify(
             {
                 "ok": False,
-                "error": "At least one DNS change is required.",
+                "error": (
+                    "At least one DNS change "
+                    "is required."
+                ),
             }
         ), 400
 
-    validation = validate_changes(changes)
+    validation = validate_changes(
+        changes
+    )
 
     if not validation["valid"]:
         return jsonify(
             {
                 "ok": False,
-                "error": "DNS plan failed validation.",
+                "error": (
+                    "DNS plan failed validation."
+                ),
                 "validation": validation,
             }
         ), 400
@@ -107,9 +208,11 @@ def deploy_plan():
     try:
         client = NameComClient()
 
-        current_records = client.list_dns_records(
-            domain
-        )["records"]
+        current_records = (
+            client.list_dns_records(
+                domain
+            )["records"]
+        )
 
         current_keys = {
             (
@@ -127,10 +230,18 @@ def deploy_plan():
         for change in changes:
             normalized_change = {
                 "type": change["type"],
-                "host": change.get("host", ""),
+                "host": change.get(
+                    "host",
+                    "",
+                ),
                 "answer": change["answer"],
-                "ttl": change.get("ttl", 300),
-                "priority": change.get("priority"),
+                "ttl": change.get(
+                    "ttl",
+                    300,
+                ),
+                "priority": change.get(
+                    "priority"
+                ),
             }
 
             change_key = (
@@ -150,8 +261,13 @@ def deploy_plan():
             return jsonify(
                 {
                     "ok": True,
-                    "message": "DNS already matches the approved plan.",
-                    "already_present": len(changes),
+                    "message": (
+                        "DNS already matches "
+                        "the approved plan."
+                    ),
+                    "already_present": len(
+                        changes
+                    ),
                     "deployed": False,
                     "verified": True,
                 }
@@ -166,9 +282,13 @@ def deploy_plan():
         return jsonify(
             {
                 "ok": True,
-                "message": "Approved DNS changes deployed.",
+                "message": (
+                    "Approved DNS changes "
+                    "deployed."
+                ),
                 "already_present": (
-                    len(changes) - len(pending_changes)
+                    len(changes)
+                    - len(pending_changes)
                 ),
                 "deployed": True,
                 "result": result,
@@ -179,16 +299,22 @@ def deploy_plan():
         return jsonify(
             {
                 "ok": False,
-                "error": "DNS deployment failed.",
+                "error": (
+                    "DNS deployment failed."
+                ),
                 "details": str(exc),
             }
         ), 500
+
 
 @main.route("/api/rollback", methods=["POST"])
 def rollback_snapshot():
     data = request.get_json(silent=True) or {}
 
-    snapshot_id = data.get("snapshot_id")
+    snapshot_id = data.get(
+        "snapshot_id"
+    )
+
     requested_domain = str(
         data.get("domain", "")
     ).strip()
@@ -197,7 +323,10 @@ def rollback_snapshot():
         return jsonify(
             {
                 "ok": False,
-                "error": "A valid snapshot ID is required.",
+                "error": (
+                    "A valid snapshot ID "
+                    "is required."
+                ),
             }
         ), 400
 
@@ -212,13 +341,16 @@ def rollback_snapshot():
             return jsonify(
                 {
                     "ok": False,
-                    "error": "Snapshot not found.",
+                    "error": (
+                        "Snapshot not found."
+                    ),
                 }
             ), 404
 
         if (
             requested_domain
-            and requested_domain != snapshot["domain"]
+            and requested_domain
+            != snapshot["domain"]
         ):
             return jsonify(
                 {
@@ -235,16 +367,22 @@ def rollback_snapshot():
         result = execute_rollback(
             client=client,
             domain=snapshot["domain"],
-            snapshot_records=snapshot["records"],
+            snapshot_records=snapshot[
+                "records"
+            ],
         )
 
-        current_records = client.list_dns_records(
-            snapshot["domain"]
-        )["records"]
+        current_records = (
+            client.list_dns_records(
+                snapshot["domain"]
+            )["records"]
+        )
 
         verification = compare_dns_states(
             current_records=current_records,
-            snapshot_records=snapshot["records"],
+            snapshot_records=snapshot[
+                "records"
+            ],
         )
 
         verified = (
@@ -255,11 +393,21 @@ def rollback_snapshot():
         return jsonify(
             {
                 "ok": True,
-                "message": "Snapshot restored.",
-                "snapshot_id": snapshot["id"],
-                "domain": snapshot["domain"],
-                "deleted": result["deleted"],
-                "created": result["created"],
+                "message": (
+                    "Snapshot restored."
+                ),
+                "snapshot_id": snapshot[
+                    "id"
+                ],
+                "domain": snapshot[
+                    "domain"
+                ],
+                "deleted": result[
+                    "deleted"
+                ],
+                "created": result[
+                    "created"
+                ],
                 "verified": verified,
             }
         )
