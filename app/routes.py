@@ -99,7 +99,7 @@ def domain_availability():
                     "Unable to check "
                     "domain availability."
                 ),
-                "details": str(exc),
+
             }
         ), 500
 
@@ -257,7 +257,7 @@ def domain_register():
                 "error": (
                     "Unable to register domain."
                 ),
-                "details": str(exc),
+
             }
         ), 500
 
@@ -328,7 +328,7 @@ def create_plan():
                     "Unable to generate "
                     "DNS plan."
                 ),
-                "details": str(exc),
+
             }
         ), 500
 
@@ -497,7 +497,7 @@ def deploy_plan():
                 "error": (
                     "DNS deployment failed."
                 ),
-                "details": str(exc),
+
             }
         ), 500
 
@@ -633,7 +633,7 @@ def rollback_snapshot():
             {
                 "ok": False,
                 "error": "Rollback failed.",
-                "details": str(exc),
+
             }
         ), 500
 
