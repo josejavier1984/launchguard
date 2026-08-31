@@ -94,6 +94,152 @@ def domain_availability():
         ), 500
 
 
+@main.route("/api/domain-register", methods=["POST"])
+def domain_register():
+    data = request.get_json(silent=True) or {}
+
+    domain = str(
+        data.get("domain", "")
+    ).strip().lower()
+
+    confirmed = (
+        data.get("confirm_registration")
+        is True
+    )
+
+    if not domain:
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Domain is required.",
+            }
+        ), 400
+
+    if (
+        "://" in domain
+        or "/" in domain
+        or " " in domain
+        or "." not in domain
+    ):
+        return jsonify(
+            {
+                "ok": False,
+                "error": "Enter a valid domain name.",
+            }
+        ), 400
+
+    if not confirmed:
+        return jsonify(
+            {
+                "ok": False,
+                "error": (
+                    "Explicit registration "
+                    "approval is required."
+                ),
+            }
+        ), 400
+
+    try:
+        client = NameComClient()
+
+        sandbox_url = (
+            "https://api.dev.name.com"
+        )
+
+        if (
+            client.base_url.rstrip("/")
+            != sandbox_url
+        ):
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "LaunchGuard demo registration "
+                        "is restricted to the "
+                        "Name.com sandbox."
+                    ),
+                }
+            ), 403
+
+        availability = (
+            client.check_availability(
+                domain
+            )
+        )
+
+        results = availability.get(
+            "results",
+            []
+        )
+
+        if not results:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "Name.com did not return "
+                        "availability information."
+                    ),
+                }
+            ), 502
+
+        availability_result = results[0]
+
+        if not availability_result.get(
+            "purchasable",
+            False,
+        ):
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "Domain is no longer "
+                        "available for registration."
+                    ),
+                    "domain": domain,
+                }
+            ), 409
+
+        client.register_domain(
+            domain=domain,
+            years=1,
+        )
+
+        return jsonify(
+            {
+                "ok": True,
+                "registered": True,
+                "domain": domain,
+                "years": 1,
+                "purchase_price": (
+                    availability_result.get(
+                        "purchasePrice"
+                    )
+                ),
+                "renewal_price": (
+                    availability_result.get(
+                        "renewalPrice"
+                    )
+                ),
+                "message": (
+                    "Domain registered successfully "
+                    "in the Name.com sandbox."
+                ),
+            }
+        )
+
+    except Exception as exc:
+        return jsonify(
+            {
+                "ok": False,
+                "error": (
+                    "Unable to register domain."
+                ),
+                "details": str(exc),
+            }
+        ), 500
+
+
 @main.route("/api/plan", methods=["POST"])
 def create_plan():
     data = request.get_json(silent=True) or {}
