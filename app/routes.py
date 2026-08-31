@@ -3,7 +3,10 @@ from flask import Blueprint, jsonify, render_template, request
 from app.services.deploy import safe_deploy
 from app.services.namecom import NameComClient
 from app.services.planner import generate_dns_plan
-from app.services.rollback import compare_dns_states, execute_rollback
+from app.services.rollback import (
+    compare_dns_states,
+    execute_rollback,
+)
 from app.services.snapshots import SnapshotStore
 from app.services.validator import validate_changes
 
@@ -16,9 +19,14 @@ def index():
     return render_template("index.html")
 
 
-@main.route("/api/domain-availability", methods=["POST"])
+@main.route(
+    "/api/domain-availability",
+    methods=["POST"],
+)
 def domain_availability():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     domain = str(
         data.get("domain", "")
@@ -35,13 +43,15 @@ def domain_availability():
     try:
         client = NameComClient()
 
-        availability = client.check_availability(
-            domain
+        availability = (
+            client.check_availability(
+                domain
+            )
         )
 
         results = availability.get(
             "results",
-            []
+            [],
         )
 
         if not results:
@@ -94,16 +104,23 @@ def domain_availability():
         ), 500
 
 
-@main.route("/api/domain-register", methods=["POST"])
+@main.route(
+    "/api/domain-register",
+    methods=["POST"],
+)
 def domain_register():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     domain = str(
         data.get("domain", "")
     ).strip().lower()
 
     confirmed = (
-        data.get("confirm_registration")
+        data.get(
+            "confirm_registration"
+        )
         is True
     )
 
@@ -124,7 +141,9 @@ def domain_register():
         return jsonify(
             {
                 "ok": False,
-                "error": "Enter a valid domain name.",
+                "error": (
+                    "Enter a valid domain name."
+                ),
             }
         ), 400
 
@@ -154,9 +173,9 @@ def domain_register():
                 {
                     "ok": False,
                     "error": (
-                        "LaunchGuard demo registration "
-                        "is restricted to the "
-                        "Name.com sandbox."
+                        "LaunchGuard demo "
+                        "registration is restricted "
+                        "to the Name.com sandbox."
                     ),
                 }
             ), 403
@@ -169,7 +188,7 @@ def domain_register():
 
         results = availability.get(
             "results",
-            []
+            [],
         )
 
         if not results:
@@ -183,7 +202,9 @@ def domain_register():
                 }
             ), 502
 
-        availability_result = results[0]
+        availability_result = (
+            results[0]
+        )
 
         if not availability_result.get(
             "purchasable",
@@ -222,8 +243,9 @@ def domain_register():
                     )
                 ),
                 "message": (
-                    "Domain registered successfully "
-                    "in the Name.com sandbox."
+                    "Domain registered "
+                    "successfully in the "
+                    "Name.com sandbox."
                 ),
             }
         )
@@ -240,9 +262,14 @@ def domain_register():
         ), 500
 
 
-@main.route("/api/plan", methods=["POST"])
+@main.route(
+    "/api/plan",
+    methods=["POST"],
+)
 def create_plan():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     domain = str(
         data.get("domain", "")
@@ -265,7 +292,8 @@ def create_plan():
             {
                 "ok": False,
                 "error": (
-                    "Deployment intent is required."
+                    "Deployment intent "
+                    "is required."
                 ),
             }
         ), 400
@@ -297,22 +325,30 @@ def create_plan():
             {
                 "ok": False,
                 "error": (
-                    "Unable to generate DNS plan."
+                    "Unable to generate "
+                    "DNS plan."
                 ),
                 "details": str(exc),
             }
         ), 500
 
 
-@main.route("/api/deploy", methods=["POST"])
+@main.route(
+    "/api/deploy",
+    methods=["POST"],
+)
 def deploy_plan():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     domain = str(
         data.get("domain", "")
     ).strip()
 
-    changes = data.get("changes")
+    changes = data.get(
+        "changes"
+    )
 
     if not domain:
         return jsonify(
@@ -357,51 +393,42 @@ def deploy_plan():
         current_records = (
             client.list_dns_records(
                 domain
-            )["records"]
+            ).get(
+                "records",
+                [],
+            )
         )
 
         current_keys = {
-            (
-                record.get("type"),
-                record.get("host", ""),
-                record.get("answer"),
-                record.get("ttl", 300),
-                record.get("priority"),
-            )
+            _record_key(record)
             for record in current_records
         }
 
         pending_changes = []
 
-        for change in changes:
-            normalized_change = {
-                "type": change["type"],
-                "host": change.get(
-                    "host",
-                    "",
-                ),
-                "answer": change["answer"],
-                "ttl": change.get(
-                    "ttl",
-                    300,
-                ),
-                "priority": change.get(
-                    "priority"
-                ),
-            }
+        already_present = 0
 
-            change_key = (
-                normalized_change["type"],
-                normalized_change["host"],
-                normalized_change["answer"],
-                normalized_change["ttl"],
-                normalized_change["priority"],
+        for change in changes:
+            normalized_change = (
+                _normalize_change(
+                    change
+                )
             )
 
-            if change_key not in current_keys:
-                pending_changes.append(
-                    normalized_change
-                )
+            change_key = _record_key(
+                normalized_change
+            )
+
+            if (
+                change_key
+                in current_keys
+            ):
+                already_present += 1
+                continue
+
+            pending_changes.append(
+                normalized_change
+            )
 
         if not pending_changes:
             return jsonify(
@@ -411,13 +438,36 @@ def deploy_plan():
                         "DNS already matches "
                         "the approved plan."
                     ),
-                    "already_present": len(
-                        changes
+                    "already_present": (
+                        already_present
                     ),
                     "deployed": False,
                     "verified": True,
                 }
             )
+
+        current_dns_validation = (
+            _validate_against_current_dns(
+                pending_changes,
+                current_records,
+            )
+        )
+
+        if not current_dns_validation[
+            "valid"
+        ]:
+            return jsonify(
+                {
+                    "ok": False,
+                    "error": (
+                        "Deployment blocked by "
+                        "current DNS state."
+                    ),
+                    "validation": (
+                        current_dns_validation
+                    ),
+                }
+            ), 409
 
         result = safe_deploy(
             client=client,
@@ -433,8 +483,7 @@ def deploy_plan():
                     "deployed."
                 ),
                 "already_present": (
-                    len(changes)
-                    - len(pending_changes)
+                    already_present
                 ),
                 "deployed": True,
                 "result": result,
@@ -453,9 +502,14 @@ def deploy_plan():
         ), 500
 
 
-@main.route("/api/rollback", methods=["POST"])
+@main.route(
+    "/api/rollback",
+    methods=["POST"],
+)
 def rollback_snapshot():
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(
+        silent=True
+    ) or {}
 
     snapshot_id = data.get(
         "snapshot_id"
@@ -465,7 +519,10 @@ def rollback_snapshot():
         data.get("domain", "")
     ).strip()
 
-    if not isinstance(snapshot_id, int):
+    if not isinstance(
+        snapshot_id,
+        int,
+    ):
         return jsonify(
             {
                 "ok": False,
@@ -479,8 +536,10 @@ def rollback_snapshot():
     try:
         store = SnapshotStore()
 
-        snapshot = store.get_snapshot(
-            snapshot_id
+        snapshot = (
+            store.get_snapshot(
+                snapshot_id
+            )
         )
 
         if snapshot is None:
@@ -513,27 +572,38 @@ def rollback_snapshot():
         result = execute_rollback(
             client=client,
             domain=snapshot["domain"],
-            snapshot_records=snapshot[
-                "records"
-            ],
+            snapshot_records=(
+                snapshot["records"]
+            ),
         )
 
         current_records = (
             client.list_dns_records(
                 snapshot["domain"]
-            )["records"]
+            ).get(
+                "records",
+                [],
+            )
         )
 
-        verification = compare_dns_states(
-            current_records=current_records,
-            snapshot_records=snapshot[
-                "records"
-            ],
+        verification = (
+            compare_dns_states(
+                current_records=(
+                    current_records
+                ),
+                snapshot_records=(
+                    snapshot["records"]
+                ),
+            )
         )
 
         verified = (
-            not verification["to_delete"]
-            and not verification["to_create"]
+            not verification[
+                "to_delete"
+            ]
+            and not verification[
+                "to_create"
+            ]
         )
 
         return jsonify(
@@ -542,12 +612,12 @@ def rollback_snapshot():
                 "message": (
                     "Snapshot restored."
                 ),
-                "snapshot_id": snapshot[
-                    "id"
-                ],
-                "domain": snapshot[
-                    "domain"
-                ],
+                "snapshot_id": (
+                    snapshot["id"]
+                ),
+                "domain": (
+                    snapshot["domain"]
+                ),
                 "deleted": result[
                     "deleted"
                 ],
@@ -566,3 +636,124 @@ def rollback_snapshot():
                 "details": str(exc),
             }
         ), 500
+
+
+def _normalize_change(change):
+    return {
+        "type": str(
+            change.get("type", "")
+        ).strip().upper(),
+        "host": str(
+            change.get("host", "")
+        ).strip(),
+        "answer": str(
+            change.get("answer", "")
+        ).strip(),
+        "ttl": change.get(
+            "ttl",
+            300,
+        ),
+        "priority": change.get(
+            "priority"
+        ),
+    }
+
+
+def _record_key(record):
+    return (
+        str(
+            record.get("type", "")
+        ).strip().upper(),
+        str(
+            record.get("host", "")
+        ).strip(),
+        str(
+            record.get("answer", "")
+        ).strip(),
+        record.get(
+            "ttl",
+            300,
+        ),
+        record.get(
+            "priority"
+        ),
+    )
+
+
+def _validate_against_current_dns(
+    changes,
+    current_records,
+):
+    errors = []
+
+    existing_by_host = {}
+
+    for record in current_records:
+        host = str(
+            record.get("host", "")
+        ).strip()
+
+        record_type = str(
+            record.get("type", "")
+        ).strip().upper()
+
+        existing_by_host.setdefault(
+            host,
+            set(),
+        ).add(
+            record_type
+        )
+
+    for index, change in enumerate(
+        changes,
+        start=1,
+    ):
+        record_type = change[
+            "type"
+        ]
+
+        host = change[
+            "host"
+        ]
+
+        existing_types = (
+            existing_by_host.get(
+                host,
+                set(),
+            )
+        )
+
+        display_host = (
+            host
+            if host
+            else "@"
+        )
+
+        if record_type == "CNAME":
+            if existing_types:
+                types_text = ", ".join(
+                    sorted(
+                        existing_types
+                    )
+                )
+
+                errors.append(
+                    f"Change #{index}: host "
+                    f"'{display_host}' already "
+                    f"contains DNS record type(s) "
+                    f"{types_text}. A new CNAME "
+                    "cannot coexist there."
+                )
+
+        elif "CNAME" in existing_types:
+            errors.append(
+                f"Change #{index}: host "
+                f"'{display_host}' already "
+                "contains a CNAME. Another DNS "
+                "record type cannot coexist there."
+            )
+
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+    }
